@@ -22,7 +22,6 @@ services:
       - GITEA__repository__DEFAULT_PUSH_CREATE_PRIVATE=true
       - GITEA__repository__DEFAULT_BRANCH=main
       - GITEA__repository__DISABLE_MIGRATIONS=true
-      - GITEA__repository__MAX_CREATION_LIMIT=0
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=postgres:5432
       - GITEA__database__NAME=$POSTGRES_DB
