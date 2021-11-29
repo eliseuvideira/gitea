@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+script_name="$(basename "$0")"
+script_dir="$(realpath "$(dirname "$0")")"
+
+root_dir="$(realpath "$script_dir/..")"
+
+env_file="$root_dir/.env"
+
+usage() {
+  echo "$script_name: usage: $script_name BACKUP_DIR BACKUP_SUFFIX" >&2
+}
+
+exit_with_error() {
+  echo "$script_name: error: $1" >&2
+  usage
+  exit 1
+}
+
+load_env() {
+  IFS=$'\n'
+  # shellcheck disable=SC2046
+  export $(grep -Ev '^#' "$env_file" | xargs -0)
+  IFS=
+}
+
+if [ "$#" != "2" ]; then
+  exit_with_error "invalid number of arguments $#"
+fi
+
+if ! [ -f "$env_file" ]; then
+  exit_with_error "$env_file not found"
+fi
+
+load_env
+
+backup_dir="$1"
+backup_suffix="$2"
+
+docker run --rm -i \
+  -e "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" \
+  -e "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" \
+  -v "$backup_dir:/root/backups" \
+  amazon/aws-cli \
+  s3 cp "/root/backups/$backup_suffix" "${AWS_S3_BUCKET%/}/$backup_suffix"

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+script_name="$(basename "$0")"
+script_dir="$(realpath "$(dirname "$0")")"
+
+root_dir="$(realpath "$script_dir/..")"
+
+env_file="$root_dir/.env"
+
+backup_dir="$root_dir/backups"
+backup_suffix="$(date +%Y)/$(date +%m)/$(date +%d)/$(date +%s).tar.gz"
+backup_file="$backup_dir/$backup_suffix"
+
+usage() {
+  echo "$script_name: usage: $script_name" >&2
+}
+
+exit_with_error() {
+  echo "$script_name: error: $1" >&2
+  usage
+  exit 1
+}
+
+create_dir() {
+  mkdir -p "$1"
+}
+
+# keeping backups up to 3 days
+clear_old_backups() {
+  find "$backup_dir" -maxdepth 4 -mindepth 4 -mtime +3 -delete
+}
+
+# check if number of arguments is correct
+if [ "$#" != "0" ]; then
+  exit_with_error "invalid number of arguments $#"
+fi
+
+# check if .env file exists
+if ! [ -f "$env_file" ]; then
+  exit_with_error "$env_file not found"
+fi
+
+# create directory if not exists
+create_dir "$(dirname "$backup_file")"
+
+# try backup locally, if it fails exit with message
+if ! "$script_dir/backup-local" "$backup_file"; then
+  exit_with_error "failed to backup locally"
+fi
+
+# try upload backup to s3, if it fails exit with message
+if ! "$script_dir/upload-s3" "$backup_dir" "$backup_suffix"; then
+  exit_with_error "failed to upload local file to aws s3"
+fi
+
+# clear old backups
+clear_old_backups

@@ -1,3 +1,5 @@
+backups/*
 data/*
 .env
+!backups/.gitkeep
 !data/.gitkeep
