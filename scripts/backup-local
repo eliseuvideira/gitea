@@ -36,10 +36,18 @@ fi
 load_env
 
 filepath="$1"
+container_temp_filepath="/tmp/$(date +%s).tar.gz"
 
+# backup to container_temp_filepath
 docker-compose -f "$docker_compose_file" \
   exec -u 1000 \
   gitea gitea dump \
-  --file="-" \
+  --file="$container_temp_filepath" \
   --type="tar.gz" \
-  --config="/data/gitea/conf/app.ini" >"$filepath"
+  --config="/data/gitea/conf/app.ini"
+
+# copy container_temp_filepath to filepath
+docker-compose -f "$docker_compose_file" \
+  cp \
+  "gitea:$container_temp_filepath" \
+  "$filepath"

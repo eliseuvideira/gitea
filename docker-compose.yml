@@ -16,6 +16,7 @@ services:
       - HTTP_ADDR=localhost
       - HTTP_PORT=3000
       - GITEA__server__LANDING_PAGE=login
+      - GITEA__server__SSH_PORT=$GITEA_SSH_PORT
       - GITEA__admin__DISABLE_REGULAR_ORG_CREATION=true
       - GITEA__repository__FORCE_PRIVATE=true
       - GITEA__repository__DEFAULT_PRIVATE=private
@@ -56,7 +57,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "$GITEA_PORT:3000"
-      - "$GITEA_SSH_PORT:22"
+      - "$GITEA_SSH_PORT:$GITEA_SSH_PORT"
 
   postgres:
     image: postgres:alpine
