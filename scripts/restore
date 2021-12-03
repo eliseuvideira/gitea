@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+script_name="$(basename "$0")"
+script_dir="$(realpath "$(dirname "$0")")"
+
+root_dir="$(realpath "$script_dir/..")"
+
+env_file="$root_dir/.env"
+docker_compose_file="$root_dir/docker-compose.yml"
+backup_filepath="$1"
+
+usage() {
+  echo "$script_name: usage: $script_name" >&2
+}
+
+exit_with_error() {
+  echo "$script_name: error: $1" >&2
+  usage
+  exit 1
+}
+
+load_env() {
+  IFS=$'\n'
+  # shellcheck disable=SC2046
+  export $(grep -Ev '^#' "$env_file" | xargs -0)
+  IFS=
+}
+
+# check if number of arguments is correct
+if [ "$#" != "1" ]; then
+  exit_with_error "invalid number of arguments $#"
+fi
+
+# check if file exists and is readable
+if [ ! -r "$backup_filepath" ]; then
+  exit_with_error "file $1 invalid or not found"
+fi
+
+tmp_folder="$(mktemp --directory)"
+
+tar \
+  --extract \
+  --gzip \
+  --verbose \
+  --file "$backup_filepath" \
+  --directory "$tmp_folder/"
+
+# stopping services
+docker-compose \
+  -f "$docker_compose_file" \
+  down
+
+mkdir -p "$root_dir/data/gitea/gitea/conf"
+
+mkdir -p "$root_dir/data/gitea/gitea"
+
+mkdir -p "$root_dir/data/gitea/git"
+
+# restore app.ini
+sudo cp -rf "$tmp_folder/app.ini" "$root_dir/data/gitea/gitea/conf/app.ini"
+
+# restore data folders
+# shellcheck disable=SC2086
+sudo cp -rf $tmp_folder/data/* "$root_dir/data/gitea/gitea/"
+
+# restore repositories
+# shellcheck disable=SC2086
+sudo cp -rf $tmp_folder/repos/* "$root_dir/data/gitea/git/"
+
+# fixing permissions and owners
+sudo chown -R 1000:1000 "$root_dir/data/gitea/gitea/"
+sudo chown -R 1000:1000 "$root_dir/data/gitea/git/"
+
+# starting postgres
+docker-compose \
+  -f "$docker_compose_file" \
+  up -d postgres
+
+load_env
+
+# restore postgres database
+docker-compose \
+  -f "$docker_compose_file" \
+  exec -T --env PGPASSWORD="$POSTGRES_PASSWORD" \
+  postgres \
+  psql \
+  --host=localhost \
+  --port="5432" \
+  --username="$POSTGRES_USER" \
+  --dbname="$POSTGRES_DB" <"$tmp_folder/gitea-db.sql"
+
+# restart services
+docker-compose \
+  -f "$docker_compose_file" \
+  up -d --force-recreate
