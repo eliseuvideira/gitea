@@ -54,7 +54,7 @@ mkdir -p "$root_dir/data/gitea/gitea/conf"
 
 mkdir -p "$root_dir/data/gitea/gitea"
 
-mkdir -p "$root_dir/data/gitea/git"
+mkdir -p "$root_dir/data/gitea/git/repositories"
 
 # restore app.ini
 sudo cp -rf "$tmp_folder/app.ini" "$root_dir/data/gitea/gitea/conf/app.ini"
@@ -65,7 +65,7 @@ sudo cp -rf $tmp_folder/data/* "$root_dir/data/gitea/gitea/"
 
 # restore repositories
 # shellcheck disable=SC2086
-sudo cp -rf $tmp_folder/repos/* "$root_dir/data/gitea/git/"
+sudo cp -rf $tmp_folder/repos/* "$root_dir/data/gitea/git/repositories/"
 
 # fixing permissions and owners
 sudo chown -R 1000:1000 "$root_dir/data/gitea/gitea/"
