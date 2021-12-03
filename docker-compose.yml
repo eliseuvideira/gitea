@@ -57,7 +57,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "$GITEA_PORT:3000"
-      - "$GITEA_SSH_PORT:$GITEA_SSH_PORT"
+      - "$GITEA_SSH_PORT:22"
 
   postgres:
     image: postgres:alpine
